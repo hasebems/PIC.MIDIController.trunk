@@ -49,12 +49,12 @@ void LedExp_appli(void)
 #endif
 
 #if USE_I2C_PCA9685
-	PCA9685_setFullColorLED( 0, colorArray );
+	err = PCA9685_setFullColorLED( 0, colorArray );
 #endif
 
 #if USE_I2C_ACM1602N1
 	unsigned char lcdStr[] = "Hello, World!";
-	ACM1602N1_setString( 0, lcdStr, 12 );
+	err = ACM1602N1_setString( 0, lcdStr, 13 );
 #endif
 
 

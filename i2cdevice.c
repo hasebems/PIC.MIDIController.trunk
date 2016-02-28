@@ -26,7 +26,7 @@ static const unsigned char ADXL345_ADDRESS = 0x1d;
 static const unsigned char ADXL345_ADDRESS2 = 0x53;
 static const unsigned char CAP_SENSE_ADDRESS = 0x37;
 static const unsigned char PCA9685_ADDRESS = 0x40;
-static const unsigned char ACM1602N1_ADDRESS = 0x41;
+static const unsigned char ACM1602N1_ADDRESS = 0x50;
 
 // I2C Bus Control Definition
 #define I2C_WRITE_CMD 0
@@ -714,16 +714,18 @@ int MBR3110_writeConfig( unsigned char* capSenseConfigData )
 #if USE_I2C_PCA9685    //	for LED Driver
 //-------------------------------------------------------------------------
 void PCA9685_init( void )
-{	//	Init Parameter
+{
+	//	Init Parameter
 	writeI2cWithCmd( PCA9685_ADDRESS, 0x00, 0x00 );	//
 	writeI2cWithCmd( PCA9685_ADDRESS, 0x01, 0x12 );	//	Invert, OE=high-impedance
 }
 //-------------------------------------------------------------------------
 //		rNum, gNum, bNum : 0 - 4094  bigger, brighter
 //-------------------------------------------------------------------------
-void PCA9685_setFullColorLED( int ledNum, unsigned short* color  )
+int PCA9685_setFullColorLED( int ledNum, unsigned short* color  )
 {
-	ledNum &= 0x03;
+    int err = 0;
+    ledNum &= 0x03;
 
 	for ( int i=0; i<3; i++ ){
 		//	figure out PWM counter
@@ -731,14 +733,20 @@ void PCA9685_setFullColorLED( int ledNum, unsigned short* color  )
 		colorCnt = 4095 - colorCnt;
 		if ( colorCnt <= 0 ){ colorCnt = 1;}
 		//	Set PWM On Timing
-		writeI2cWithCmd( PCA9685_ADDRESS, (unsigned char)(0x06 + i*4 + ledNum*16),
+		err = writeI2cWithCmd( PCA9685_ADDRESS, (unsigned char)(0x06 + i*4 + ledNum*16),
 				(unsigned char)(colorCnt & 0x00ff) );	//
-		writeI2cWithCmd( PCA9685_ADDRESS, (unsigned char)(0x07 + i*4 + ledNum*16),
+        if ( err != 0 ){ return err; }
+		err = writeI2cWithCmd( PCA9685_ADDRESS, (unsigned char)(0x07 + i*4 + ledNum*16),
 				(unsigned char)((colorCnt & 0xff00)>>8) );	//
+        if ( err != 0 ){ return err; }
+
 		//	Set PWM Off Timing
-		writeI2cWithCmd( PCA9685_ADDRESS, (unsigned char)(0x08 + i*4 + ledNum*16), 0 );	//
-		writeI2cWithCmd( PCA9685_ADDRESS, (unsigned char)(0x09 + i*4 + ledNum*16), 0 );	//
+		err = writeI2cWithCmd( PCA9685_ADDRESS, (unsigned char)(0x08 + i*4 + ledNum*16), 0 );	//
+        if ( err != 0 ){ return err; }
+        err = writeI2cWithCmd( PCA9685_ADDRESS, (unsigned char)(0x09 + i*4 + ledNum*16), 0 );	//
+        if ( err != 0 ){ return err; }
 	}
+    return err;
 }
 #endif
 
@@ -750,18 +758,29 @@ void PCA9685_setFullColorLED( int ledNum, unsigned short* color  )
 void ACM1602N1_init( void )
 {	//	Init Parameter
 	writeI2cWithCmd( ACM1602N1_ADDRESS, 0x00, 0x01 );
+    __delay_ms(5);
+    writeI2cWithCmd( ACM1602N1_ADDRESS, 0x00, 0x38 );
+    __delay_ms(5);
+	writeI2cWithCmd( ACM1602N1_ADDRESS, 0x00, 0x0c );
+    __delay_ms(5);
+	writeI2cWithCmd( ACM1602N1_ADDRESS, 0x00, 0x06 );
 }
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-void ACM1602N1_setString( int locate, unsigned char* str, int strNum  )
+int ACM1602N1_setString( int locate, unsigned char* str, int strNum  )
 {
+    int err = 0;
+
     if ( locate >= 32 ) return;
     else if ( locate >= 16 ){ locate = 0x30 + locate;}
-    writeI2cWithCmd( ACM1602N1_ADDRESS, 0x00, 0x80+locate );
+    err = writeI2cWithCmd( ACM1602N1_ADDRESS, 0x00, 0x80+locate );
+    if ( err != 0 ){ return err; }
 
     for ( int i=0; i<strNum; i++ ){
-        writeI2cWithCmd( ACM1602N1_ADDRESS, 0x80, *(str+strNum) );
+        err = writeI2cWithCmd( ACM1602N1_ADDRESS, 0x80, *(str+i) );
+        if ( err != 0 ){ return err; }
     }
+    return err;
 }
 #endif
