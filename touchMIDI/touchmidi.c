@@ -7,8 +7,8 @@
 
 
 #include <xc.h>
-#include "../hsb_common.h"
-#include "../config.h"
+#include "hsb_common.h"
+#include "config.h"
 
 #ifdef TOUCH_MIDI
 /*----------------------------------------------------------------------------*/

@@ -7,9 +7,9 @@
 
 
 #include <xc.h>
-#include "../hsb_common.h"
-#include "../config.h"
-#include "../i2cdevice.h"
+#include "hsb_common.h"
+#include "config.h"
+#include "i2cdevice.h"
 
 #ifdef LED_EXP
 /*----------------------------------------------------------------------------*/
