@@ -33,8 +33,8 @@ extern bool			event5msec;
 extern bool			event10msec;
 extern bool			event100msec;
 
-extern uint8_t		midiExp;    //  for Full Color LED
-extern int			doremi;     //  for Full Color LED
+extern uint8_t		tmr2Cnt;
+extern int			i2cComErr;
 
 //  GPIO
 #define	IN4			PORTCbits.RC7
@@ -46,6 +46,10 @@ extern int			doremi;     //  for Full Color LED
 #define LEDG        PORTCbits.RC1
 #define LEDB        PORTCbits.RC0
 
+#define OUT4	    PORTCbits.RC3
+#define OUT3        PORTCbits.RC2
+#define OUT2        PORTCbits.RC1
+#define OUT1        PORTCbits.RC0
 
 #ifdef	__cplusplus
 }

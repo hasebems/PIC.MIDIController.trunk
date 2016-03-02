@@ -87,8 +87,6 @@
 #define	MIDI_BUF_MAX		8
 #define	MIDI_BUF_MAX_MASK	0x07;
 
-#define	NO_NOTE				12
-
 /*----------------------------------------------------------------------------*/
 //
 //      Variables
@@ -100,7 +98,7 @@ static USB_AUDIO_MIDI_EVENT_PACKET midiData @ DEVCE_AUDIO_MIDI_EVENT_DATA_BUFFER
 static USB_HANDLE	USBTxHandle;
 static USB_HANDLE	USBRxHandle;
 
-//	MIDI for serial (phisical MIDI)
+//	MIDI for serial (UART MIDI)
 static uint8_t		serialMidiBuffer[SERIAL_MIDI_BUFF];
 static int			smbReadPtr;
 static int			smbWritePtr;
@@ -112,18 +110,14 @@ static uint8_t		midiEvent[MIDI_BUF_MAX][3];
 static int			midiEventReadPointer;
 static int			midiEventWritePointer;
 
-uint8_t		midiExp;
-int			doremi;
-
 long			counter10msec;	//	one loop 243 days
 bool			event5msec;
 bool			event10msec;
 bool			event100msec;
+uint8_t         tmr2Cnt;
+int	            i2cComErr;
 
 static uint16_t		timerStock;
-static uint8_t		tmr2Cnt;
-
-static int			i2cComErr;
 static bool			usbEnable;
 
 //	Temporary
@@ -131,28 +125,9 @@ static int			globalCount;
 
 /*----------------------------------------------------------------------------*/
 //
-//      Full Color LED by Interrupt
+//      Interrupt
 //
 /*----------------------------------------------------------------------------*/
-const unsigned char tColorTable[13][3] = {
-
-	//	this Value * midiExp(0-127) / 16 = 0x00-0xfe : PWM count value
-	// R	 G		B
-	{ 0x20,  0x00,  0x00  },   //  red		C
-	{ 0x1a,  0x06,  0x00  },   //  red		C#
-	{ 0x16,  0x0a,  0x00  },   //  orange	D
-	{ 0x14,  0x0c,  0x00  },   //  orange	D#
-	{ 0x0c,  0x14,  0x00  },   //  yellow	E
-	{ 0x00,  0x20,  0x00  },   //  green	F
-	{ 0x00,  0x10,  0x10  },   //  green	F#
-	{ 0x00,  0x00,  0x20  },   //  blue		G
-	{ 0x04,  0x00,  0x1c  },   //  blue		G#
-	{ 0x08,  0x00,  0x18  },   //  violet	A
-	{ 0x0c,  0x00,  0x14  },   //  violet	A#
-	{ 0x18,  0x00,  0x08  },   //  violet	B
-	{ 0x00,  0x00,  0x00  },   //  none
-};
-//-------------------------------------------------------------------------
 void interrupt lightFullColorLed( void )
 {
     if (TMR2IF == 1) {          // Timer2 Interrupt?
@@ -163,20 +138,8 @@ void interrupt lightFullColorLed( void )
 		for ( int i=0; i<MAX_INT_FUNC_NUM; i++ ){
 			intFunc[i]();
 		}
-
-		//	PWM Full Color LED
-		uint16_t ledCnt;
-		ledCnt = ((uint16_t)tColorTable[doremi][0]*midiExp)>>4;
-		LEDR = ((uint16_t)tmr2Cnt >= ledCnt)? 1:0;
-
-		ledCnt = ((uint16_t)tColorTable[doremi][1]*midiExp)>>4;
-		LEDG = ((uint16_t)tmr2Cnt >= ledCnt)? 1:0;
-
-		ledCnt = ((uint16_t)tColorTable[doremi][2]*midiExp)>>4;
-		LEDB = ((uint16_t)tmr2Cnt >= ledCnt)? 1:0;
 	}
 }
-
 
 /*----------------------------------------------------------------------------*/
 //
@@ -207,6 +170,12 @@ void initAllI2cHw( void )
 {
 	initI2c();
 
+#if USE_I2C_PRESSURE_SENSOR
+	LPS331AP_init();
+#endif
+#if USE_I2C_ACCELERATOR_SENSOR
+	ADXL345_init(0);
+#endif
 #if USE_I2C_CY8CMBR3110
 	__delay_ms(15);		//	I2c enable time for CY8CMBR3110(15msec)
 	MBR3110_init();
@@ -268,6 +237,7 @@ void initMain(void)
     BAUDCON = 0b00000000;           // HI-16bit baudrate=disable
     SPBRG   = 23;                   // 31250[bps]
 
+
 	//	Initialize Variables only when the power turns on
 	for ( i=0; i<MIDI_BUF_MAX; i++ ){
 		midiEvent[i][0] = 0;
@@ -279,21 +249,21 @@ void initMain(void)
 	event10msec = false;
 	event100msec = false;
 	timerStock = 0;
-	midiExp = 0;
 
 	//	Iitialize other H/W
 	initAllI2cHw();
-	OUT = 0;
-	LEDR = 0;
-	LEDB = 0;
-	LEDG = 0;
+	OUT1 = 0;
+	OUT2 = 0;
+	OUT3 = 0;
+	OUT4 = 0;
 
-	//	common Initialize
-	initCommon();
-
+	//	Registered Function for Initialize
 	for ( i=0; i<MAX_INIT_FUNC_NUM; i++ ){
 		initFunc[i]();
 	}
+
+	//	common Initialize
+	initCommon();
 
 	//	Enable All Interrupt
 	PEIE   = 1 ;					// enable peripheral interrupt
@@ -541,7 +511,7 @@ void main(void)
 		USBDeviceTasks();
 		usbEnable = true;
 
-		//	Touch
+		//	Registered Function for Application
 		for ( int i=0; i<MAX_APPLI_FUNC_NUM; i++ ){
 			appFunc[i]();
 		}
