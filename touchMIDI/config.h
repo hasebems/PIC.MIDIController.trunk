@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 //  Set Application
-//#define     XXX_XXX
+#define     TOUCH_MIDI
 
 
 //  Max Application Num
@@ -26,7 +26,7 @@ extern "C" {
 //  Set H/W
 #define     USE_I2C_LPS331AP                0   //  Pressure Sensor
 #define     USE_I2C_MPR121                  0   //  Touch Sensor
-#define		USE_I2C_CY8CMBR3110             0   //  Touch Sensor(Cypress)
+#define		USE_I2C_CY8CMBR3110             1   //  Touch Sensor(Cypress)
 #define     USE_I2C_ADXL345                 0   //  Accelerator Sensor
 #define     USE_I2C_PCA9685                 0   //  LED Driver
 #define     USE_I2C_ADS1015                 0   //  ADC

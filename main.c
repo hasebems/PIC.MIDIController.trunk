@@ -92,6 +92,14 @@
 //      Variables
 //
 /*----------------------------------------------------------------------------*/
+//	Global Service
+long			counter10msec;	//	one loop 243 days
+bool			event5msec;
+bool			event10msec;
+bool			event100msec;
+uint8_t         tmr2Cnt;
+int	            i2cComErr;
+/*----------------------------------------------------------------------------*/
 static uint8_t ReceivedDataBuffer[64] @ DEVCE_AUDIO_MIDI_RX_DATA_BUFFER_ADDRESS;
 static USB_AUDIO_MIDI_EVENT_PACKET midiData @ DEVCE_AUDIO_MIDI_EVENT_DATA_BUFFER_ADDRESS;
 
@@ -104,18 +112,9 @@ static int			smbReadPtr;
 static int			smbWritePtr;
 static uint8_t		runningStatus;
 
-static bool			sentNoteOff;
-
 static uint8_t		midiEvent[MIDI_BUF_MAX][3];
 static int			midiEventReadPointer;
 static int			midiEventWritePointer;
-
-long			counter10msec;	//	one loop 243 days
-bool			event5msec;
-bool			event10msec;
-bool			event100msec;
-uint8_t         tmr2Cnt;
-int	            i2cComErr;
 
 static uint16_t		timerStock;
 static bool			usbEnable;
@@ -257,13 +256,13 @@ void initMain(void)
 	OUT3 = 0;
 	OUT4 = 0;
 
+	//	common Initialize
+	initCommon();
+
 	//	Registered Function for Initialize
 	for ( i=0; i<MAX_INIT_FUNC_NUM; i++ ){
 		initFunc[i]();
 	}
-
-	//	common Initialize
-	initCommon();
 
 	//	Enable All Interrupt
 	PEIE   = 1 ;					// enable peripheral interrupt
@@ -281,7 +280,6 @@ void USBMIDIInitialize()
 {
     USBTxHandle = NULL;
     USBRxHandle = NULL;
-    sentNoteOff = true;
 
 	initCommon();
 

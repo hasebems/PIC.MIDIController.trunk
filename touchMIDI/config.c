@@ -13,8 +13,8 @@
 //      External Function
 //
 /*----------------------------------------------------------------------------*/
-//void Xxx_init(void);
-//void Xxx_appli(void);
+void TouchMIDI_init(void);
+void TouchMIDI_appli(void);
 
 /*----------------------------------------------------------------------------*/
 void dummy(void){}
@@ -25,11 +25,11 @@ void dummy(void){}
 //
 /*----------------------------------------------------------------------------*/
 const InitFunc initFunc[MAX_INIT_FUNC_NUM] = {
-//	Xxx_init,
+	TouchMIDI_init,
 };
 /*----------------------------------------------------------------------------*/
 const AppliFunc appFunc[MAX_APPLI_FUNC_NUM] = {
-//	Xxx_appli,
+	TouchMIDI_appli,
 };
 /*----------------------------------------------------------------------------*/
 const InterruptFunc intFunc[MAX_INT_FUNC_NUM] = {

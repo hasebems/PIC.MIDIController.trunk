@@ -9,6 +9,7 @@
 #include <xc.h>
 #include "hsb_common.h"
 #include "config.h"
+#include "i2cdevice.h"
 
 #ifdef TOUCH_MIDI
 /*----------------------------------------------------------------------------*/
@@ -28,6 +29,7 @@ void TouchMIDI_init(void)
 {
 	isFinishedWriting = false;
 	swState[0] = swState[1] = 0;
+	OUT = 1;
 }
 
 /*----------------------------------------------------------------------------*/

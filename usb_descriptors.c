@@ -308,7 +308,7 @@ sizeof(sd001),USB_DESCRIPTOR_STRING,
 //Product string descriptor
 const struct{uint8_t bLength;uint8_t bDscType;uint16_t string[12];}sd002={
 sizeof(sd002),USB_DESCRIPTOR_STRING,
-{'M','a','g','i','c','S','h','a','k','e','r',' '}};
+{'T','o','u','c','h','M','I','D','I',' '}};
 
 //Array of configuration descriptors
 const uint8_t *const USB_CD_Ptr[]=
@@ -327,4 +327,3 @@ const uint8_t *const USB_SD_Ptr[]=
 /** EOF usb_descriptors.c ***************************************************/
 
 #endif
-
