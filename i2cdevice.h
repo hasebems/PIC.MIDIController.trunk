@@ -18,8 +18,8 @@ void initI2c( void );
 void quitI2c( void );
 int i2c_checkAdrs( unsigned char adrs );
 
-void LPS331AP_init( void );
-int LPS331AP_getPressure( int* retPrs );
+void LPS25H_init( void );
+int LPS25H_getPressure( int* retPrs );
 
 void MPR121_init( void );
 int MPR121_getTchSwData( unsigned char* retSw );

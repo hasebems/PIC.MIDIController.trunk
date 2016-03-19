@@ -17,7 +17,7 @@
 //			Constants
 //-------------------------------------------------------------------------
 //static const unsigned char GPIO_EXPANDER_ADDRESS = 0x3e;
-static const unsigned char LPS331AP_ADDRESS = 0x5d;
+static const unsigned char LPS25H_ADDRESS = 0x5d;
 static const unsigned char MPR121_ADDRESS = 0x5a;
 static const unsigned char LED_BLINKM_ADDRESS = 0x09;
 static const unsigned char ADS1015_ADDRESS = 0x48;
@@ -314,9 +314,9 @@ int readI2cWithCmd( unsigned char adrs, unsigned char cmd, unsigned char* data, 
 }
 
 //-------------------------------------------------------------------------
-//			LPS331AP (Pressure Sencer : I2c Device)
+//			LPS25H (Pressure Sencer : I2c Device)
 //-------------------------------------------------------------------------
-#if USE_I2C_LPS331AP
+#if USE_I2C_LPS25H
 //	for Pressure Sencer
 #define		PRES_SNCR_RESOLUTION		0x10
 #define		PRES_SNCR_PWRON				0x20
@@ -329,24 +329,24 @@ int readI2cWithCmd( unsigned char adrs, unsigned char cmd, unsigned char* data, 
 #define		PRES_SNCR_DT_M				0x29
 #define		PRES_SNCR_DT_H				0x2a
 //-------------------------------------------------------------------------
-void LPS331AP_init( void )
+void LPS25H_init( void )
 {
-#if USE_PRESSURE_SENSOR_LPS25H
-	writeI2cWithCmd( LPS331AP_ADDRESS, PRES_SNCR_PWRON, 0xc0 );	//	Power On
+#if 1
+	writeI2cWithCmd( LPS25H_ADDRESS, PRES_SNCR_PWRON, 0xc0 );	//	Power On
 #else
-	//	Init Parameter
+	//	LPS331AP
 	writeI2cWithCmd( LPS331AP_ADDRESS, PRES_SNCR_RESOLUTION, 0x6A );	//	Resolution
 	writeI2cWithCmd( LPS331AP_ADDRESS, PRES_SNCR_PWRON, 0xf0 );	//	Power On
 #endif
 }
 //-------------------------------------------------------------------------
-int LPS331AP_getPressure( int* retPrs )
+int LPS25H_getPressure( int* retPrs )
 {
 	unsigned char	dt[3];
 	float	tmpPrs = 0;
 	int		err;
 
-	err = readI2cWithCmd( LPS331AP_ADDRESS, PRES_SNCR_DT_L|0x80, dt, 3 );
+	err = readI2cWithCmd( LPS25H_ADDRESS, PRES_SNCR_DT_L|0x80, dt, 3 );
 
 	if ( !err ){
 		tmpPrs = (float)(((unsigned long)dt[2]<<16)|((unsigned long)dt[1]<<8)|dt[0]);

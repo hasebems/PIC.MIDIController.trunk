@@ -138,7 +138,7 @@ void pressureSensor( void )
 	int	prs;
 	int err;
 
-	err = LPS331AP_getPressure(&prs);
+	err = LPS25H_getPressure(&prs);
 	if ( err != 0 ){
         i2cComErr = err;
     }

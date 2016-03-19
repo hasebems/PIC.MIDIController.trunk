@@ -169,17 +169,17 @@ void initAllI2cHw( void )
 {
 	initI2c();
 
-#if USE_I2C_PRESSURE_SENSOR
-	LPS331AP_init();
-#endif
-#if USE_I2C_ACCELERATOR_SENSOR
-	ADXL345_init(0);
-#endif
 #if USE_I2C_CY8CMBR3110
 	__delay_ms(15);		//	I2c enable time for CY8CMBR3110(15msec)
 	MBR3110_init();
 	//	wait
 	for ( int i=0; i<40; i++ ) { __delay_ms(10);}	//	Touch Sense enable time for CY8CMBR3110(400msec)
+#endif
+#if USE_I2C_LPS25H
+	LPS25H_init();
+#endif
+#if USE_I2C_ADXL345
+	ADXL345_init(0);
 #endif
 #if USE_I2C_PCA9685
 	PCA9685_init();
