@@ -18,6 +18,7 @@
 //-------------------------------------------------------------------------
 //static const unsigned char GPIO_EXPANDER_ADDRESS = 0x3e;
 static const unsigned char LPS25H_ADDRESS = 0x5d;
+static const unsigned char LPS331AP_ADDRESS = 0x5d;
 static const unsigned char MPR121_ADDRESS = 0x5a;
 static const unsigned char LED_BLINKM_ADDRESS = 0x09;
 static const unsigned char ADS1015_ADDRESS = 0x48;
@@ -482,9 +483,13 @@ void ADXL345_init( unsigned char chipnum )
 	if ( chipnum == 1 ){ i2cadrs = ADXL345_ADDRESS2; }
 
 	//	Start Access
+	writeI2cWithCmd(i2cadrs,ACCEL_SNCR_PWR_CTRL,0x08);			//	Start Measurement
+	writeI2cWithCmd(i2cadrs,ACCEL_SNCR_DATA_FORMAT,0x04);		//	Left Justified, 2g
+#if 0	//	if Shaker
 	writeI2cWithCmd(i2cadrs,ACCEL_SNCR_RATE,0x0b);				//	200Hz (5msec)
 	writeI2cWithCmd(i2cadrs,ACCEL_SNCR_PWR_CTRL,0x08);			//	Start Measurement
 	writeI2cWithCmd(i2cadrs,ACCEL_SNCR_DATA_FORMAT,0x05);		//	Left Justified, 4g
+#endif
 }
 //-------------------------------------------------------------------------
 int ADXL345_getAccel( unsigned char chipnum, signed short* value )
@@ -499,7 +504,7 @@ int ADXL345_getAccel( unsigned char chipnum, signed short* value )
 	err = readI2cWithCmd(i2cadrs,0x32,reg,2);
 	if (!err){
 		tmp = reg[0];
-		tmp |= reg[1] << 8;
+		tmp |= (unsigned short)reg[1] << 8;
 		*value = (signed short)tmp;
 	}
 	else return err;
@@ -507,7 +512,7 @@ int ADXL345_getAccel( unsigned char chipnum, signed short* value )
 	err = readI2cWithCmd(i2cadrs,0x34,reg,2);
 	if (!err){
 		tmp = reg[0];
-		tmp |= reg[1] << 8;
+		tmp |= (unsigned short)reg[1] << 8;
 		*(value+1) = (signed short)tmp;
 	}
 	else return err;
@@ -515,7 +520,7 @@ int ADXL345_getAccel( unsigned char chipnum, signed short* value )
 	err = readI2cWithCmd(i2cadrs,0x36,reg,2);
 	if (!err){
 		tmp = reg[0];
-		tmp |= reg[1] << 8;
+		tmp |= (unsigned short)reg[1] << 8;
 		*(value+2) = (signed short)tmp;
 	}
 

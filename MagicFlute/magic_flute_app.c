@@ -132,7 +132,7 @@ void touchSensor( void )
 //      Pressure Sensor
 //
 /*----------------------------------------------------------------------------*/
-#if USE_I2C_LPS331AP
+#if USE_I2C_LPS25H
 void pressureSensor( void )
 {
 	int	prs;
@@ -199,18 +199,20 @@ void acceleratorSensor( void )
     	incli = acl[0]/512;
 //    }
 
-	if ( incli >= MAX_ANGLE ){
-        incli = MAX_ANGLE-1;
-    }
-
 	uint8_t modVal, prtVal;
 	if ( incli < 0 ){
-		prtVal = incli * (-1);
 		modVal = 0;
+		prtVal = incli * (-1);
+		if ( prtVal >= MAX_ANGLE ){
+	        prtVal = MAX_ANGLE-1;
+		}
 	}
 	else {
 		prtVal = 0;
 		modVal = incli;
+		if ( modVal >= MAX_ANGLE ){
+	        modVal = MAX_ANGLE-1;
+	    }
 	}
 
 	//	lessen variation of modulation
@@ -244,7 +246,7 @@ void magicFlute_appli(void)
 #endif
 
     //	Air Pressure Sensor
-#if USE_I2C_LPS331AP
+#if USE_I2C_LPS25H
     pressureSensor();
 #endif
 
