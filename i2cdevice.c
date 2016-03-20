@@ -575,6 +575,7 @@ int ADS1015_getVolume( signed short* value )
 //			Cap Sense CY8CMBR3110 (Touch Sencer : I2c Device)
 //-------------------------------------------------------------------------
 #if USE_I2C_CY8CMBR3110
+#define		SENSOR_EN				0x00
 #define		FAMILY_ID_ADRS			0x8f
 #define		FAMILY_ID				0x9a
 #define		DEVICE_ID_ADRS			0x90
@@ -634,6 +635,25 @@ int MBR3110_checkDevice( void )
 
 	err = readI2cWithCmd(CAP_SENSE_ADDRESS,FAMILY_ID_ADRS,data,1);
 	if ( data[0] != FAMILY_ID ){ return -3; }
+
+	return 0;
+}
+//-------------------------------------------------------------------------
+int MBR3110_checkWriteConfig( void )	//	err=-1 means not written yet
+{
+	unsigned char data[2];
+	int err;
+	volatile int cnt = 0;
+
+	while(1) {
+		err = readI2cWithCmd(CAP_SENSE_ADDRESS,SENSOR_EN,data,2);
+		if ( err == 0 ) break;
+		if ( ++cnt > 500 ){	//	if more than 500msec, give up and throw err
+			return err;
+		}
+		__delay_ms(1);
+	}
+	if (( data[0] == 0x1f ) && ( data[1] == 0x00 )){ return -1; }
 
 	return 0;
 }
