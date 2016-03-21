@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   analyse_touch.h
  * Author: jca03205
  *
@@ -51,4 +51,3 @@ private:
 };
 #endif
 #endif	/* ANALYSE_TOUCH_H */
-

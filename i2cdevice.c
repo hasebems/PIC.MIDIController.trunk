@@ -576,6 +576,7 @@ int ADS1015_getVolume( signed short* value )
 //-------------------------------------------------------------------------
 #if USE_I2C_CY8CMBR3110
 #define		SENSOR_EN				0x00
+#define		CONFIG_CRC				0x7e
 #define		FAMILY_ID_ADRS			0x8f
 #define		FAMILY_ID				0x9a
 #define		DEVICE_ID_ADRS			0x90
@@ -639,21 +640,23 @@ int MBR3110_checkDevice( void )
 	return 0;
 }
 //-------------------------------------------------------------------------
-int MBR3110_checkWriteConfig( void )	//	err=-1 means not written yet
+int MBR3110_checkWriteConfig( unsigned char checksum1, unsigned char checksum2 )
 {
 	unsigned char data[2];
 	int err;
 	volatile int cnt = 0;
 
 	while(1) {
-		err = readI2cWithCmd(CAP_SENSE_ADDRESS,SENSOR_EN,data,2);
+		err = readI2cWithCmd(CAP_SENSE_ADDRESS,CONFIG_CRC,data,2);
 		if ( err == 0 ) break;
 		if ( ++cnt > 500 ){	//	if more than 500msec, give up and throw err
 			return err;
 		}
 		__delay_ms(1);
 	}
-	if (( data[0] == 0x1f ) && ( data[1] == 0x00 )){ return -1; }
+
+	//	err=-1 means it's not present config
+	if (( data[0] == checksum2 ) && ( data[1] == checksum1 )){ return -1; }
 
 	return 0;
 }
