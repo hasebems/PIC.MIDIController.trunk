@@ -97,7 +97,8 @@ long			counter10msec;	//	one loop 243 days
 bool			event5msec;
 bool			event10msec;
 bool			event100msec;
-uint8_t         tmr2Cnt;
+uint8_t         pwm16msInterval;	//	one round means 16msec
+int				globalCount;		//	250usec step  Max:16sec
 int	            i2cComErr;
 /*----------------------------------------------------------------------------*/
 static uint8_t ReceivedDataBuffer[64] @ DEVCE_AUDIO_MIDI_RX_DATA_BUFFER_ADDRESS;
@@ -119,9 +120,6 @@ static int			midiEventWritePointer;
 static uint16_t		timerStock;
 static bool			usbEnable;
 
-//	Temporary
-static int			globalCount;
-
 /*----------------------------------------------------------------------------*/
 //
 //      Interrupt
@@ -131,7 +129,7 @@ void interrupt lightFullColorLed( void )
 {
     if (TMR2IF == 1) {          // Timer2 Interrupt?
 		TMR2IF = 0 ;            // reset of Timer2 Interrupt
-		tmr2Cnt += 0x04 ;       // PWM resolution
+		pwm16msInterval += 0x04 ;       // PWM resolution
 		globalCount++;
 
 		for ( int i=0; i<MAX_INT_FUNC_NUM; i++ ){
@@ -223,7 +221,7 @@ void initMain(void)
 	TMR0L	= 0;
 
 	// Interrupt by TIMER2
-	tmr2Cnt = 0 ;					// PWM Counter clear
+	pwm16msInterval = 0 ;					// PWM Counter clear
 	T2CON  = 0b00000111 ;			// TMR2 prescaler 1:16, postscaler 1:1 (48/4*16MHz) 1.333...usec
 	PR2    = 187 ;					// TMR2 interrupt count Interval: 250usec
 	TMR2   = 0 ;					// Initialize

@@ -33,7 +33,8 @@ extern bool			event5msec;
 extern bool			event10msec;
 extern bool			event100msec;
 
-extern uint8_t		tmr2Cnt;
+extern uint8_t		pwm16msInterval;
+extern int			globalCount;
 extern int			i2cComErr;
 
 //  GPIO
