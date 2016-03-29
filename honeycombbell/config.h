@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 //  Set Application
-#define     LED_EXP
+#define     HONEYCOMB_BELL
 //#define     TOUCH_MIDI
 
 //  Max Application Num

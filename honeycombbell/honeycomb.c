@@ -1,5 +1,5 @@
 /*
- * File:   ledexp.c
+ * File:   honeycomb.c
  * Author: jca03205
  *
  * Created on February 28, 2016, 1:49 PM
@@ -11,35 +11,39 @@
 #include "config.h"
 #include "i2cdevice.h"
 
-#ifdef LED_EXP
+#ifdef HONEYCOMB_BELL
 /*----------------------------------------------------------------------------*/
 //
 //      Variables
 //
 /*----------------------------------------------------------------------------*/
+#define		VOLUME_ARRAY_MAX	4
+
 static uint8_t		adCnt;
-static uint16_t 	colorArray[4];
-static uint16_t 	dbgColorArray[4];
+static uint16_t 	colorArray[VOLUME_ARRAY_MAX];
+static uint16_t 	dbgColorArray[VOLUME_ARRAY_MAX];
 
 /*----------------------------------------------------------------------------*/
 //
 //      Init function
 //
 /*----------------------------------------------------------------------------*/
-void LedExp_init(void)
+void Honeycomb_init(void)
 {
 	adCnt = 0;
-	for (int i=0;i<4;i++){
+	for (int i=0;i<VOLUME_ARRAY_MAX;i++){
 		colorArray[i] = 0;
 		dbgColorArray[i] = 0;
 	}
+
+
 }
 /*----------------------------------------------------------------------------*/
 //
 //      Application function
 //
 /*----------------------------------------------------------------------------*/
-void LedExp_appli(void)
+void Honeycomb_appli(void)
 {
 	signed short volume=0;
 #if USE_I2C_ADS1015
@@ -64,13 +68,14 @@ void LedExp_appli(void)
 	//	Update colorArray[]
 	colorArray[adCnt] = volume;
 	adCnt++;
-	if ( adCnt >= 3 ){ adCnt = 0;}
+	if ( adCnt >= VOLUME_ARRAY_MAX-1 ){ adCnt = 0;}
 #if USE_I2C_ADS1015
 	ADS1015_setNext(adCnt);
 #endif
 
 #if USE_I2C_PCA9685
 	err = PCA9685_setFullColorLED( 0, (unsigned short*)colorArray );
+	err = PCA9685_setFullColorLED( 1, (unsigned short*)colorArray );
 #endif
 
 #if USE_I2C_ACM1602N1

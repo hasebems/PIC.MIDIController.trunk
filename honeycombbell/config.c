@@ -13,8 +13,8 @@
 //      External Function
 //
 /*----------------------------------------------------------------------------*/
-void LedExp_init(void);
-void LedExp_appli(void);
+void Honeycomb_init(void);
+void Honeycomb_appli(void);
 
 /*----------------------------------------------------------------------------*/
 void dummy(void){}
@@ -25,12 +25,12 @@ void dummy(void){}
 //
 /*----------------------------------------------------------------------------*/
 const InitFunc initFunc[MAX_INIT_FUNC_NUM] = {
-	LedExp_init,
+	Honeycomb_init,
 //	TouchMIDI_init
 };
 /*----------------------------------------------------------------------------*/
 const AppliFunc appFunc[MAX_APPLI_FUNC_NUM] = {
-	LedExp_appli,
+	Honeycomb_appli,
 //	TouchMIDI_appli
 };
 /*----------------------------------------------------------------------------*/

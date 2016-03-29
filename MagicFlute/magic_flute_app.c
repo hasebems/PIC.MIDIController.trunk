@@ -91,7 +91,7 @@ void magicFlute_int(void)
 
 /*----------------------------------------------------------------------------*/
 //
-//      Initialize
+//      CY8CMBR3110 Write Configuration
 //
 /*----------------------------------------------------------------------------*/
 const unsigned char tCY8CMBR3110_ConfigData[128] =
