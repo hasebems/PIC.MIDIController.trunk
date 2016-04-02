@@ -8,10 +8,6 @@
 #ifndef MFCONFIG_H
 #define	MFCONFIG_H
 
-#ifdef	__cplusplus
-extern "C" {
-#endif
-
 //  Set Application
 #define     HONEYCOMB_BELL
 //#define     TOUCH_MIDI
@@ -32,9 +28,5 @@ extern "C" {
 #define     USE_I2C_PCA9685                 1   //  LED Driver
 #define     USE_I2C_ADS1015                 1   //  ADC
 #define     USE_I2C_ACM1602N1               1   //  LCD Module
-
-#ifdef	__cplusplus
-}
-#endif
 
 #endif	/* MFCONFIG_H */
