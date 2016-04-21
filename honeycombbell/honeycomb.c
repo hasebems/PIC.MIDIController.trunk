@@ -26,6 +26,9 @@ static uint16_t 	dbgColorArray[VOLUME_ARRAY_MAX];
 static unsigned char swState;
 static int			autoCount;
 
+static uint8_t	rxBuffer[3];
+static int rxBufferCount;
+
 /*----------------------------------------------------------------------------*/
 //
 //      Decay Light Effect Class (DLE)
@@ -35,10 +38,10 @@ const unsigned short tLEDPattern[12][VOLUME_ARRAY_MAX] =
 {
 		//	R	B	G
 		{2000,0,0,2000},		//	C
-		{2000,0,1000,2000},
-		{2000,0,2000,2000},		//	D
-		{1500,0,2000,2000},
-		{1000,0,2000,2000},		//	E
+		{1800,0,1200,2000},
+		{1500,0,1500,2000},		//	D
+		{1200,0,1800,2000},
+		{800,0,1900,2000},		//	E
 		{0,0,2000,2000},		//	F
 		{0,1000,2000,2000},
 		{0,2000,0,2000},		//	G
@@ -158,6 +161,9 @@ void Honeycomb_init(void)
 		dbgColorArray[i] = 0;
 	}
 
+	for (int j=0;j<3;j++ ){ rxBuffer[j] = 0;}
+	rxBufferCount = 0;
+
 	writeConfig();
 }
 
@@ -253,6 +259,53 @@ void automaticLighting( void )
 		if ( autoCount < 0 ){ autoCount = 0;}
 	}
 }
+/*----------------------------------------------------------------------------*/
+//
+//      Analyze USART Rx Data as MIDI
+//
+/*----------------------------------------------------------------------------*/
+void analyzeRecievedMIDI( void )
+{
+	uint8_t	rcvDt;
+
+	rcvDt = getRecievedMIDI();
+	if ( rcvDt != 0xff ){
+		if ((rcvDt & 0x80) && ((rcvDt&0xf0) != 0xf0 )){
+			//	Status Byte
+			rxBufferCount = 0;
+			rxBuffer[rxBufferCount++] = rcvDt;
+		}
+		else if (!(rcvDt & 0x80) && (rxBufferCount > 0)){
+			//	Data Byte
+			rxBuffer[rxBufferCount++] = rcvDt;
+		}
+	}
+
+	if (rxBufferCount > 1){
+		uint8_t	statusByte = rxBuffer[0];
+		if (rxBufferCount == 2){
+			switch (statusByte&0xf0){
+				case 0xc0:	case 0xd0:{
+					setMidiBuffer( statusByte, rxBuffer[1], 0);
+					rxBufferCount = 0;
+					break;
+				}
+				default: break;
+			}
+		}
+		else if (rxBufferCount == 3){
+			switch (statusByte&0xf0){
+				case 0x90:	case 0x80:	case 0xa0:	case 0xb0:	case 0xe0:{
+					setMidiBuffer( statusByte, rxBuffer[1], rxBuffer[2]);
+					rxBufferCount = 0;
+					break;
+				}
+				default: break;
+			}
+		}
+		if ( rxBufferCount >= 3 ){ rxBufferCount = 0;}
+	}
+}
 
 /*----------------------------------------------------------------------------*/
 //
@@ -262,6 +315,9 @@ void automaticLighting( void )
 void Honeycomb_appli(void)
 {
 	int err;
+
+	//	Analyze Rx MIDI
+	analyzeRecievedMIDI();
 
 	//	Touch MIDI OUT
 	checkTouch();

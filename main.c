@@ -86,6 +86,8 @@
 
 #define	MIDI_BUF_MAX		8
 #define	MIDI_BUF_MAX_MASK	0x07;
+#define MIDI_USART_RX_BUF_MAX		4
+#define MIDI_USART_RX_BUF_MAX_MASK	0x03
 
 /*----------------------------------------------------------------------------*/
 //
@@ -116,6 +118,9 @@ static uint8_t		runningStatus;
 static uint8_t		midiEvent[MIDI_BUF_MAX][3];
 static int			midiEventReadPointer;
 static int			midiEventWritePointer;
+static uint8_t		rxUsartData[MIDI_USART_RX_BUF_MAX];
+static int			rxUsartReadPointer;
+static int			rxUsartWritePointer;
 
 static uint16_t		timerStock;
 static bool			usbEnable;
@@ -136,6 +141,19 @@ void interrupt lightFullColorLed( void )
 			intFunc[i]();
 		}
 	}
+
+#if ( USE_USART_RX_AS_MIDI == 1 )
+	if (RCIF == 1){				//	USART RX Interrupt
+		if (FERR || OERR ){
+			CREN = 0;
+			CREN = 1;
+			RCREG = '?';		//	dummy data
+		}
+		RCIF = 0;
+		rxUsartData[rxUsartWritePointer++] = RCREG;
+		rxUsartWritePointer &= 0x03;
+	}
+#endif
 }
 
 /*----------------------------------------------------------------------------*/
@@ -147,6 +165,8 @@ void initCommon( void )
 {
 	midiEventReadPointer = 0;
 	midiEventWritePointer = 0;
+	rxUsartReadPointer = 0;
+	rxUsartWritePointer = 0;
 
     smbReadPtr = 0;
     smbWritePtr = 0;
@@ -227,13 +247,16 @@ void initMain(void)
 	TMR2   = 0 ;					// Initialize
 	TMR2IF = 0 ;					// clear TMR2 Interrupt flag
 	TMR2IE = 1 ;					// enable TMR2 interrupt
+	CREN   = 1 ;					// enable serial receive
 
 	//	UART
     RCSTA   = 0b10010000;           // enable UART Tx & Rx
     TXSTA   = 0b00100000;           // 8bit Asynclonous Tx/Rx
     BAUDCON = 0b00000000;           // HI-16bit baudrate=disable
     SPBRG   = 23;                   // 31250[bps]
-
+#if ( USE_USART_RX_AS_MIDI == 1 )
+	RCIE	= 1;					// Rx Interrupt enable
+#endif
 
 	//	Initialize Variables only when the power turns on
 	for ( i=0; i<MIDI_BUF_MAX; i++ ){
@@ -429,6 +452,22 @@ void midiOutDebugCode( void )
 			setMidiBuffer(0xb0,0x10,(unsigned char)i2cComErr);
 		}
 	}
+}
+/*----------------------------------------------------------------------------*/
+//
+//      Get Serial Data recieved from Rx
+//
+/*----------------------------------------------------------------------------*/
+uint8_t getRecievedMIDI( void )
+{
+	uint8_t		rcvDt = 0xff;
+#if ( USE_USART_RX_AS_MIDI == 1 )
+	if ( rxUsartReadPointer != rxUsartWritePointer ){
+		rcvDt = rxUsartData[rxUsartReadPointer++];
+		rxUsartReadPointer &= MIDI_USART_RX_BUF_MAX_MASK;
+	}
+#endif
+	return rcvDt;
 }
 /*----------------------------------------------------------------------------*/
 //

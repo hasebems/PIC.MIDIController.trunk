@@ -8,10 +8,6 @@
 #ifndef HSB_COMMON_H
 #define	HSB_COMMON_H
 
-#ifdef	__cplusplus
-extern "C" {
-#endif
-
 #include <xc.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -26,6 +22,8 @@ const InterruptFunc intFunc[];
 
 //  Send MIDI
 extern void setMidiBuffer( uint8_t status, uint8_t dt1, uint8_t dt2 );
+//	Rcv MIDI by USART
+extern uint8_t getRecievedMIDI( void );
 
 //  Counter
 extern long			counter10msec;	//	one loop 243 days
@@ -51,9 +49,5 @@ extern int			i2cComErr;
 #define OUT3        PORTCbits.RC2
 #define OUT2        PORTCbits.RC1
 #define OUT1        PORTCbits.RC0
-
-#ifdef	__cplusplus
-}
-#endif
 
 #endif	/* HSB_COMMON_H */
