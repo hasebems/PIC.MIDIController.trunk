@@ -1,5 +1,0 @@
-You have to move files that you want to build as application.
-Those are:
-1. ledexp
-2. MagicFlute
-3. touchMIDI

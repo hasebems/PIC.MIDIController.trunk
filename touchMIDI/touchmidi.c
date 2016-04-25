@@ -18,6 +18,9 @@
 //
 /*----------------------------------------------------------------------------*/
 static unsigned char swState[2];
+static int mbrWriteConfigErr;
+static int mbrReadTouchErr;
+static int mbrSelfCheckErr;
 
 /*----------------------------------------------------------------------------*/
 //
@@ -26,7 +29,9 @@ static unsigned char swState[2];
 /*----------------------------------------------------------------------------*/
 const unsigned char tCY8CMBR3110_ConfigData[128] =
 {
+#if 0
 	//	0.4pF, Auto Reset disable
+	//	CS8 doesn't work!!!!
 	0xFF,0x03,0x00,0x00,0x00,0x00,0x00,0x00,
 	0xFF,0xFF,0x0F,0x00,0x80,0x80,0x80,0x80,
 	0x80,0x80,0x80,0x80,0x80,0x80,0x00,0x00,
@@ -44,23 +49,27 @@ const unsigned char tCY8CMBR3110_ConfigData[128] =
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 	0x00,0x00,0x00,0x00,0x00,0x00,0xC2,0x07
-};
-/*----------------------------------------------------------------------------*/
-void writeConfig( void )
-{
-#if USE_I2C_CY8CMBR3110
-	unsigned char checksum1, checksum2;
-	checksum1 = tCY8CMBR3110_ConfigData[126];
-	checksum2 = tCY8CMBR3110_ConfigData[127];
-	if ( MBR3110_checkWriteConfig(checksum1,checksum2) == 0 ){
-		int err = MBR3110_writeConfig((unsigned char*)tCY8CMBR3110_ConfigData);
-		if ( err ){
-			setMidiBuffer( 0xb0, 0x10, err & 0x7f );
-		}
-	}
+#else
+	//	2016.04.25
+	//	Sens.Min(0.1pF)
+	0xFFu, 0x03u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x80u, 0x80u, 0x80u, 0x80u,
+    0x80u, 0x80u, 0x80u, 0x80u, 0x80u, 0x80u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x03u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x80u,
+    0x05u, 0x00u, 0x00u, 0x02u, 0x00u, 0x02u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x1Eu, 0x1Eu, 0x00u,
+    0x00u, 0x1Eu, 0x1Eu, 0x00u, 0x00u, 0x00u, 0x01u, 0x01u,
+    0x00u, 0xFFu, 0xFFu, 0xFFu, 0xFFu, 0xFFu, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x11u, 0x02u, 0x01u, 0x08u,
+    0x00u, 0x37u, 0x01u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0xB0u, 0x9Du
 #endif
-}
-
+};
 /*----------------------------------------------------------------------------*/
 //
 //      Init function
@@ -68,8 +77,32 @@ void writeConfig( void )
 /*----------------------------------------------------------------------------*/
 void TouchMIDI_init(void)
 {
+	int err;
+	unsigned char selfCheckResult;
+
 	swState[0] = swState[1] = 0;
-	writeConfig();
+	mbrWriteConfigErr = 0;
+	mbrReadTouchErr = 0;
+	mbrSelfCheckErr = 0;
+
+ #if USE_I2C_CY8CMBR3110
+	{
+		unsigned char checksum1, checksum2;
+		checksum1 = tCY8CMBR3110_ConfigData[126];
+		checksum2 = tCY8CMBR3110_ConfigData[127];
+		if (( MBR3110_checkWriteConfig(checksum1,checksum2) == 0 ) || (IN1 == 0)){
+			mbrWriteConfigErr = MBR3110_writeConfig((unsigned char*)tCY8CMBR3110_ConfigData);
+		}
+	}
+
+	err = MBR3110_selfTest(&selfCheckResult);
+	if ( err ){
+		mbrReadTouchErr = err;
+	}
+	if ( selfCheckResult & 0x80 ){
+		mbrSelfCheckErr = selfCheckResult & 0x1f;
+	}
+ #endif
 }
 
 /*----------------------------------------------------------------------------*/
@@ -82,13 +115,10 @@ void checkTouch( void )
 #if USE_I2C_CY8CMBR3110
 	const uint8_t tNote[10] = { 0x3c, 0x3e, 0x40, 0x41, 0x43, 0x45, 0x47, 0x48, 0x4a, 0x4c };
 	unsigned char sw[2];
-	int			err;
+	int	err;
 
 	err = MBR3110_readTouchSw(sw);
-	if ( err ){
-		setMidiBuffer( 0xb0, 0x11, err & 0x7f );
-	}
-	else {
+	if ( !err ){
 		for ( int i=0; i<8; i++ ){
 			uint8_t	bitPtn = 0x01 << i;
 			if ( (swState[0]&bitPtn)^(sw[0]&bitPtn) ){
@@ -108,6 +138,9 @@ void checkTouch( void )
 		swState[0] = sw[0];
 		swState[1] = sw[1];
 	}
+	else {
+		mbrReadTouchErr = err;
+	}
 #endif
 }
 
@@ -118,12 +151,24 @@ void checkTouch( void )
 /*----------------------------------------------------------------------------*/
 void TouchMIDI_appli(void)
 {
-	checkTouch();
+	if ( mbrWriteConfigErr ){
+		if ( event100msec ){ setMidiBuffer( 0xb0, 0x10, mbrWriteConfigErr & 0x7f );}
+	}
+	if ( mbrSelfCheckErr ){
+		if ( event100msec ){ setMidiBuffer( 0xb0, 0x11, mbrSelfCheckErr & 0x7f );}
+	}
 
-	//	Heartbeat
-	if ( IN1 ){ OUT1 = (counter10msec & 0x0020)? 0:1; }
-	if ( IN2 ){ OUT2 = (counter10msec & 0x0020)? 0:1; }
-	if ( IN3 ){ OUT3 = (counter10msec & 0x0020)? 0:1; }
-	if ( IN4 ){ OUT4 = (counter10msec & 0x0020)? 0:1; }
+	if ( mbrReadTouchErr ){
+		if ( event100msec ){ setMidiBuffer( 0xb0, 0x12, mbrReadTouchErr & 0x7f );}
+	}
+	else {
+		checkTouch();
+
+		//	Heartbeat
+		if ( IN1 ){ OUT1 = (counter10msec & 0x0020)? 0:1; }
+		if ( IN2 ){ OUT2 = (counter10msec & 0x0020)? 0:1; }
+		if ( IN3 ){ OUT3 = (counter10msec & 0x0020)? 0:1; }
+		if ( IN4 ){ OUT4 = (counter10msec & 0x0020)? 0:1; }
+	}
 }
 #endif

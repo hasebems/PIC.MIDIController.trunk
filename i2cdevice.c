@@ -575,44 +575,70 @@ int ADS1015_getVolume( signed short* value )
 //			Cap Sense CY8CMBR3110 (Touch Sencer : I2c Device)
 //-------------------------------------------------------------------------
 #if USE_I2C_CY8CMBR3110
-#define		SENSOR_EN				0x00
-#define		CONFIG_CRC				0x7e
-#define		FAMILY_ID_ADRS			0x8f
+#define		CONFIG_DATA_OFFSET		0
+#define		CONFIG_DATA_SZ			128
+
+#define		SENSOR_EN				0x00	//	Register Address
+#define		I2C_ADDR				0x51	//	Register Address
+#define		CONFIG_CRC				0x7e	//	Register Address
+
+#define		CTRL_CMD				0x86	//	Register Address
+#define		POWER_ON_AND_FINISHED	0x00
+#define		SAVE_CHECK_CRC			0x02
+#define		DEVICE_RESET			0xff
+
+#define		CTRL_CMD_ERR			0x89	//	Register Address
+
+#define		FAMILY_ID_ADRS			0x8f	//	Register Address
 #define		FAMILY_ID				0x9a
-#define		DEVICE_ID_ADRS			0x90
+#define		DEVICE_ID_ADRS			0x90	//	Register Address
 #define		DEVICE_ID_LOW			0x02
 #define		DEVICE_ID_HIGH			0x0a
 
-#define		DATA_OFFSET				0x00
-#define		I2C_ADDR				0x51
-#define		CTRL_CMD				0x86
-#define		CTRL_CMD_ERR			0x89
-#define		SAVE_CHECK_CRC			0x02
-#define		SW_RESET				0xff
-#define		CONFIG_DATA_SZ			128
-#define		SNS_VDD_SHORT			0x9a
-#define		SNS_GND_SHORT			0x9c
-#define		BUTTON_STAT				0xaa
+#define		TOTAL_WORKING_SNS		0x97	//	Register Address
+#define		SNS_VDD_SHORT			0x9a	//	Register Address
+#define		SNS_GND_SHORT			0x9c	//	Register Address
+#define		BUTTON_STAT				0xaa	//	Register Address
 //-------------------------------------------------------------------------
 void MBR3110_init( void )
 {
-	writeI2cWithCmd(CAP_SENSE_ADDRESS,CTRL_CMD,0xff);
+	writeI2cWithCmd(CAP_SENSE_ADDRESS,CTRL_CMD,POWER_ON_AND_FINISHED);
 }
 //-------------------------------------------------------------------------
-int MBR3110_checkI2cAddr( void )
+int MBR3110_readData( unsigned char cmd, unsigned char* data, int length )
 {
-	unsigned char data[2];
 	int err;
 	volatile int cnt = 0;
 
 	while(1) {
-		err = readI2cWithCmd(CAP_SENSE_ADDRESS,I2C_ADDR,data,1);
+		err = readI2cWithCmd(CAP_SENSE_ADDRESS,cmd,data,length);
 		if ( err == 0 ) break;
 		if ( ++cnt > 500 ){	//	if more than 500msec, give up and throw err
 			return err;
 		}
 		__delay_ms(1);
 	}
+	return 0;
+}
+//-------------------------------------------------------------------------
+int MBR3110_selfTest( unsigned char* result )
+{
+	int err;
+
+	err = MBR3110_readData(TOTAL_WORKING_SNS,result,1);
+	if ( err ){ return err; }
+
+	return 0;
+}
+//-------------------------------------------------------------------------
+int MBR3110_checkI2cAddr( void )
+{
+	unsigned char data[2];
+	int err;
+
+	err = MBR3110_readData(I2C_ADDR,data,1);
+	if ( err ){ return err; }
+
 	if ( data[0] != CAP_SENSE_ADDRESS ){ return -1; }
 
 	return 0;
@@ -622,41 +648,29 @@ int MBR3110_checkDevice( void )
 {
 	unsigned char data[2];
 	int err;
-	volatile int cnt = 0;
 
-	while(1) {
-		err = readI2cWithCmd(CAP_SENSE_ADDRESS,DEVICE_ID_ADRS,data,2);
-		if ( err == 0 ) break;
-		if ( ++cnt > 500 ){	//	if more than 500msec, give up and throw err
-			return err;
-		}
-		__delay_ms(1);
-	}
+	err = MBR3110_readData(DEVICE_ID_ADRS,data,2);
+	if ( err ){ return err; }
+
 	if (( data[0] != DEVICE_ID_LOW ) || ( data[1] != DEVICE_ID_HIGH )){ return -2; }
 
-	err = readI2cWithCmd(CAP_SENSE_ADDRESS,FAMILY_ID_ADRS,data,1);
+	err = MBR3110_readData(FAMILY_ID_ADRS,data,1);
+	if ( err ){ return err; }
 	if ( data[0] != FAMILY_ID ){ return -3; }
 
 	return 0;
 }
 //-------------------------------------------------------------------------
-int MBR3110_checkWriteConfig( unsigned char checksum1, unsigned char checksum2 )
+int MBR3110_checkWriteConfig( unsigned char checksumL, unsigned char checksumH )
 {
 	unsigned char data[2];
 	int err;
-	volatile int cnt = 0;
 
-	while(1) {
-		err = readI2cWithCmd(CAP_SENSE_ADDRESS,CONFIG_CRC,data,2);
-		if ( err == 0 ) break;
-		if ( ++cnt > 500 ){	//	if more than 500msec, give up and throw err
-			return err;
-		}
-		__delay_ms(1);
-	}
+	err = MBR3110_readData(CONFIG_CRC,data,2);
+	if ( err ){ return err; }
 
-	//	err=-1 means it's not present config
-	if (( data[0] == checksum2 ) && ( data[1] == checksum1 )){ return -1; }
+	//	err=-1 means it's present config
+	if (( data[0] == checksumL ) && ( data[1] == checksumH )){ return -1; }
 
 	return 0;
 }
@@ -664,16 +678,9 @@ int MBR3110_checkWriteConfig( unsigned char checksum1, unsigned char checksum2 )
 int MBR3110_readTouchSw( unsigned char* touchSw )
 {
 	int err;
-	volatile int cnt = 0;
 
-	while(1) {
-		err = readI2cWithCmd(CAP_SENSE_ADDRESS,BUTTON_STAT,touchSw,2);
-		if ( err == 0 ) break;
-		if ( ++cnt > 500 ){	//	if more than 500msec, give up and throw err
-			return err;
-		}
-		__delay_ms(1);
-	}
+	err = MBR3110_readData(BUTTON_STAT,touchSw,2);
+	if ( err ){ return err; }
 
 	return 0;
 }
@@ -697,7 +704,7 @@ int MBR3110_writeConfig( unsigned char* capSenseConfigData )
 
 	//*** Step 3 ***
 	//	send Config Data
-	err = writeI2cWithCmdAndMultiData(CAP_SENSE_ADDRESS,DATA_OFFSET,capSenseConfigData,CONFIG_DATA_SZ);
+	err = writeI2cWithCmdAndMultiData(CAP_SENSE_ADDRESS,CONFIG_DATA_OFFSET,capSenseConfigData,CONFIG_DATA_SZ);
 	if ( err != 0 ){ return err;}
 
 	//	Write to flash
@@ -714,7 +721,7 @@ int MBR3110_writeConfig( unsigned char* capSenseConfigData )
 	if ( data[0] != 0x00 ){ return -4;}
 
 	//	Reset
-	err = writeI2cWithCmd(CAP_SENSE_ADDRESS,CTRL_CMD,SW_RESET);
+	err = writeI2cWithCmd(CAP_SENSE_ADDRESS,CTRL_CMD,DEVICE_RESET);
 	if ( err != 0 ){ return err;}
 
 	//	100msec Wait
@@ -724,7 +731,7 @@ int MBR3110_writeConfig( unsigned char* capSenseConfigData )
 
 	//*** Step 4 ***
 	//	Get Config Data
-	err =  readI2cWithCmd(CAP_SENSE_ADDRESS,DATA_OFFSET,data,CONFIG_DATA_SZ);
+	err =  readI2cWithCmd(CAP_SENSE_ADDRESS,CONFIG_DATA_OFFSET,data,CONFIG_DATA_SZ);
 	if ( err != 0 ){ return err; }
 
 	//	Compare both Data
