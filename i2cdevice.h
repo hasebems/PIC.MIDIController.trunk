@@ -33,6 +33,7 @@ int ADS1015_getVolume( signed short* value );
 
 void MBR3110_init( void );
 int MBR3110_selfTest( unsigned char* result );
+void MBR3110_changeSensitivity( unsigned char data );
 int MBR3110_writeConfig( uint8_t* capSenseConfigData );
 int MBR3110_readTouchSw( unsigned char* touchSw );
 int MBR3110_checkWriteConfig( unsigned char checksum1, unsigned char checksum2 );

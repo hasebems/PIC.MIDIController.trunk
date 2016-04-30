@@ -579,6 +579,9 @@ int ADS1015_getVolume( signed short* value )
 #define		CONFIG_DATA_SZ			128
 
 #define		SENSOR_EN				0x00	//	Register Address
+#define		SENSITIVITY0			0x08	//	Register Address
+#define		SENSITIVITY1			0x09	//	Register Address
+#define		SENSITIVITY2			0x0a	//	Register Address
 #define		I2C_ADDR				0x51	//	Register Address
 #define		CONFIG_CRC				0x7e	//	Register Address
 
@@ -631,34 +634,18 @@ int MBR3110_selfTest( unsigned char* result )
 	return 0;
 }
 //-------------------------------------------------------------------------
-int MBR3110_checkI2cAddr( void )
+void MBR3110_changeSensitivity( unsigned char data )		//	data : 0-3
 {
-	unsigned char data[2];
-	int err;
+	unsigned char regData2 = data & 0x03;
+	regData2 |= (regData2 << 2);
+	unsigned char regData4 = regData2 | (regData2<<4);
 
-	err = MBR3110_readData(I2C_ADDR,data,1);
-	if ( err ){ return err; }
+	if ( writeI2cWithCmd(CAP_SENSE_ADDRESS,SENSITIVITY0,regData4) ){
+	if ( writeI2cWithCmd(CAP_SENSE_ADDRESS,SENSITIVITY1,regData4) ){
+	if ( writeI2cWithCmd(CAP_SENSE_ADDRESS,SENSITIVITY2,regData2) ){
+		return;
+	}}}
 
-	if ( data[0] != CAP_SENSE_ADDRESS ){ return -1; }
-
-	return 0;
-}
-//-------------------------------------------------------------------------
-int MBR3110_checkDevice( void )
-{
-	unsigned char data[2];
-	int err;
-
-	err = MBR3110_readData(DEVICE_ID_ADRS,data,2);
-	if ( err ){ return err; }
-
-	if (( data[0] != DEVICE_ID_LOW ) || ( data[1] != DEVICE_ID_HIGH )){ return -2; }
-
-	err = MBR3110_readData(FAMILY_ID_ADRS,data,1);
-	if ( err ){ return err; }
-	if ( data[0] != FAMILY_ID ){ return -3; }
-
-	return 0;
 }
 //-------------------------------------------------------------------------
 int MBR3110_checkWriteConfig( unsigned char checksumL, unsigned char checksumH )
@@ -695,12 +682,18 @@ int MBR3110_writeConfig( unsigned char* capSenseConfigData )
 
 
 	//	Check I2C Address
-	err = MBR3110_checkI2cAddr();
+	err = MBR3110_readData(I2C_ADDR,data,1);
 	if ( err != 0 ){ return err; }
+	if ( data[0] != CAP_SENSE_ADDRESS ){ return -1; }
 
 	//*** Step 2 ***
-	err = MBR3110_checkDevice();
+	err = MBR3110_readData(DEVICE_ID_ADRS,data,2);
 	if ( err != 0 ){ return err; }
+	if (( data[0] != DEVICE_ID_LOW ) || ( data[1] != DEVICE_ID_HIGH )){ return -2; }
+
+	err = MBR3110_readData(FAMILY_ID_ADRS,data,1);
+	if ( err != 0 ){ return err; }
+	if ( data[0] != FAMILY_ID ){ return -3; }
 
 	//*** Step 3 ***
 	//	send Config Data

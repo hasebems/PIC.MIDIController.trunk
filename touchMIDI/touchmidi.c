@@ -102,6 +102,21 @@ void TouchMIDI_init(void)
 	if ( selfCheckResult & 0x80 ){
 		mbrSelfCheckErr = selfCheckResult & 0x1f;
 	}
+
+	//	Change SENSITIVITY
+	if ( !IN1 ){
+		if ( !IN2 ){
+			MBR3110_changeSensitivity(3);	//	Sens MAX (0.4pF)
+		}
+		else {
+			MBR3110_changeSensitivity(1);	//	0.2pF
+		}
+	}
+	else {
+		if ( !IN2 ){
+			MBR3110_changeSensitivity(2);	//	0.3pF
+		}
+	}
  #endif
 }
 
