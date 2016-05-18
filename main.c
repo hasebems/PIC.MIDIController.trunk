@@ -225,6 +225,9 @@ void initMain(void)
 
 	//	Set Port
 	//    ADCON1  =	0b00001111;
+    LATA    =	0b00000000;
+    LATB    =	0b00000000;
+    LATC    =	0b00000000;
     TRISA   =	0b00000000;			//D-,D+
     TRISB   =	0b11110000;			//I2C master mode, UART Tx/Rx(set INPUT)
     TRISC   =	0b11110000;			//
@@ -232,10 +235,6 @@ void initMain(void)
 	ANSELH	=	0b00000000;
 	T0CON	=	0b10010111;			// 1:256 of System Clock
 									//	 48/4MHz -> 46875Hz 21.333..usec
-
-//    LATA    =	0b00000000;
-//    LATB    =	0b00000000;
-//    LATC    =	0b01000000;
 
 	//	TIMER0
 	TMR0H	= 0;
@@ -273,10 +272,6 @@ void initMain(void)
 
 	//	Iitialize other H/W
 	initAllI2cHw();
-	OUT1 = 0;
-	OUT2 = 0;
-	OUT3 = 0;
-	OUT4 = 0;
 
 	//	common Initialize
 	initCommon();

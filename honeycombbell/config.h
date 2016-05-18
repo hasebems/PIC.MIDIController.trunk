@@ -23,11 +23,11 @@
 //  Set H/W
 #define     USE_I2C_LPS331AP                0   //  Pressure Sensor
 #define     USE_I2C_MPR121                  0   //  Touch Sensor
-#define		USE_I2C_CY8CMBR3110             0
+#define		USE_I2C_CY8CMBR3110             1
 #define     USE_I2C_ADXL345                 0   //  Accelerator Sensor
 #define     USE_I2C_PCA9685                 1   //  LED Driver
-#define     USE_I2C_ADS1015                 1   //  ADC
-#define     USE_I2C_ACM1602N1               1   //  LCD Module
+#define     USE_I2C_ADS1015                 0   //  ADC
+#define     USE_I2C_ACM1602N1               0   //  LCD Module
 #define		USE_USART_RX_AS_MIDI			1	//	Usart Rx
 
 #endif	/* MFCONFIG_H */
