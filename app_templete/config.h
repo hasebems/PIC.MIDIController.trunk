@@ -20,7 +20,7 @@
 #define     MF_FIRM_VERSION                 0
 
 //  Set H/W
-#define     USE_I2C_LPS331AP                0   //  Pressure Sensor
+#define     USE_I2C_LPS25H                	0   //  Pressure Sensor
 #define     USE_I2C_MPR121                  0   //  Touch Sensor
 #define		USE_I2C_CY8CMBR3110             0   //  Touch Sensor(Cypress)
 #define     USE_I2C_ADXL345                 0   //  Accelerator Sensor
