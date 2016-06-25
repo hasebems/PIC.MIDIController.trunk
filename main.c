@@ -201,7 +201,8 @@ void initAllI2cHw( void )
 	ADXL345_init(0);
 #endif
 #if USE_I2C_PCA9685
-	PCA9685_init();
+	PCA9685_init(0);
+	PCA9685_init(1);
 #endif
 #if USE_I2C_ADS1015
 	ADS1015_init();

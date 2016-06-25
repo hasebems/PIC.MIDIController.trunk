@@ -6,10 +6,11 @@
  */
 
 
-#include <xc.h>
-#include "hsb_common.h"
-#include "config.h"
-#include "i2cdevice.h"
+#include	<xc.h>
+#include	<stdbool.h>
+#include	"hsb_common.h"
+#include	"config.h"
+#include	"i2cdevice.h"
 
 #ifdef HONEYCOMB_BELL
 /*----------------------------------------------------------------------------*/
@@ -17,8 +18,10 @@
 //      Basic Macros
 //
 /*----------------------------------------------------------------------------*/
-#define		HONEYCOMB_CELL_MAX	4
+#define		HONEYCOMB_CELL_MAX	8
+#define		CELL_MAX_PER_BLOCK	4
 #define		VOLUME_ARRAY_MAX	4	//	number of Max Color
+#define		DOREMI_MAX			12
 
 /*----------------------------------------------------------------------------*/
 //
@@ -35,8 +38,10 @@ static bool			beatOn;
 static bool			beatOff;
 static uint8_t		beatCell;
 static uint8_t		elementNum;
+static int			cellMax;
 
 static uint8_t		rxBuffer[3];
+static uint8_t		rxRunningStatus;
 static int 			rxBufferCount;
 
 /*----------------------------------------------------------------------------*/
@@ -44,7 +49,7 @@ static int 			rxBufferCount;
 //      Decay Light Effect Class (DLE)
 //
 /*----------------------------------------------------------------------------*/
-const unsigned short tLEDPattern[12][VOLUME_ARRAY_MAX] =
+const unsigned short tLEDPattern[DOREMI_MAX][VOLUME_ARRAY_MAX] =
 {
 	//	R		B		G
 		{2000,	0,		0,		2000},		//	C
@@ -93,6 +98,7 @@ void DLE_on( DLE* this, uint16_t* ptr, uint8_t doremi )
 	this->_count = SEG_IN_TOUCH;
 	this->_colorArrayPtr = ptr;
 	this->_doremi = doremi;
+	while ( doremi >= DOREMI_MAX ){ doremi -= DOREMI_MAX; } 
 	for ( int i=0; i<VOLUME_ARRAY_MAX; i++ ){
 		*(this->_colorArrayPtr+i) = this->_orgColor[i] = tLEDPattern[doremi][i];
 	}
@@ -165,7 +171,7 @@ void writeConfig( void )
 	if ( MBR3110_checkWriteConfig(checksum1,checksum2) == 0 ){
 		int err = MBR3110_writeConfig((unsigned char*)tCY8CMBR3110_ConfigData);
 		if ( err ){
-			setMidiBuffer( 0xb0, 0x10, err & 0x7f );
+			setMidiBuffer( 0xb0, 0x10, (uint8_t)err & 0x7f );
 		}
 	}
 #endif
@@ -185,6 +191,7 @@ void Honeycomb_init(void)
 	beatOff = false;
 	beatCell = 0;
 	elementNum = 0;
+	cellMax	= 0;
 
 	for (int i=0;i<VOLUME_ARRAY_MAX;i++){
 		for ( int j=0; j<HONEYCOMB_CELL_MAX; j++ ){
@@ -194,6 +201,7 @@ void Honeycomb_init(void)
 	}
 
 	for (int j=0;j<3;j++ ){ rxBuffer[j] = 0;}
+	rxRunningStatus = 0;
 	rxBufferCount = 0;
 
 	for (int k=0;k<HONEYCOMB_CELL_MAX;k++ ){
@@ -203,6 +211,10 @@ void Honeycomb_init(void)
 
 	writeConfig();
 
+	//	Check Port
+	if ( IN1 == 1 ){ cellMax = CELL_MAX_PER_BLOCK; }
+	else { cellMax = CELL_MAX_PER_BLOCK*2; }
+
 	//	Light On
 	OUT1 = 1;
 }
@@ -210,18 +222,20 @@ void Honeycomb_init(void)
 /*----------------------------------------------------------------------------*/
 //
 //      Detect Element by MIDI special command
-//		Set "beatOn,beatOff,beatCell,rxBuffer[2]"
+//		Set "beatOn,beatOff,beatCell,elementNum"
 //
 /*----------------------------------------------------------------------------*/
-void detectElementByMidi( uint8_t dt )
+uint8_t detectElementByMidi( uint8_t dt )
 {
+	uint8_t data = dt & 0x4f;
 	uint8_t elm = ( dt & 0x30 )>>4;
-	elementNum = elm+1;
+	if ( elm < 3 ){ elm += 1; }
 	if ( dt & 0x40 ){ beatOn = true; }
 	else { beatOff = true; }
 	beatCell = dt & 0x0f;
-	rxBuffer[2] &= 0xcf;
-	rxBuffer[2] |= elementNum << 4;
+	elementNum = elm;
+	data |= elm << 4;
+	return data;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -235,49 +249,59 @@ void analyzeRecievedMIDI( void )
 
 	rcvDt = getRecievedMIDI();
 	if ( rcvDt != 0xff ){
-		if ((rcvDt & 0x80) && ((rcvDt&0xf0) != 0xf0 )){
+		if (rcvDt & 0x80){
 			//	Status Byte
-			rxBufferCount = 0;
-			rxBuffer[rxBufferCount++] = rcvDt;
+			rxBuffer[0] = rcvDt;
+			rxBufferCount = 1;
 		}
-		else if (!(rcvDt & 0x80) && (rxBufferCount > 0)){
-			//	Data Byte
-			rxBuffer[rxBufferCount++] = rcvDt;
-		}
-	}
+		else {
+			//	Check Running Status
+			if ( rxBufferCount == 0 ){
+				rxBuffer[0] = rxRunningStatus;
+				rxBufferCount++;
+			}
 
-	if (rxBufferCount > 1){
-		uint8_t	statusByte = rxBuffer[0];
-		if (rxBufferCount == 2){
-			switch (statusByte&0xf0){
-				case 0xc0:	case 0xd0:{
-					setMidiBuffer( statusByte, rxBuffer[1], 0);
-					rxBufferCount = 0;
-					break;
-				}
-				default: break;
+			//	Save Data Byte
+			if ( rxBufferCount < 3 ){
+				rxBuffer[rxBufferCount] = rcvDt;
+				rxBufferCount++;
 			}
-		}
-		else if (rxBufferCount == 3){
-			switch (statusByte&0xf0){
-				case 0x90:	case 0x80:	case 0xa0:	case 0xe0:{
-					setMidiBuffer( statusByte, rxBuffer[1], rxBuffer[2]);
-					rxBufferCount = 0;
-					break;
-				}
-				case 0xb0:{
-					//	HCB Element detection
-					if ( rxBuffer[1] == 0x53 ){
-						detectElementByMidi( rxBuffer[2] );
+
+			//	judge termination
+			uint8_t	statusByte = rxBuffer[0];
+			if (rxBufferCount == 2){
+				switch (statusByte&0xf0){
+					case 0xc0:	case 0xd0:{
+						setMidiBuffer( statusByte, rxBuffer[1], 0);
+						rxRunningStatus = statusByte;
+						rxBufferCount = 0;
+						break;
 					}
-					setMidiBuffer( statusByte, rxBuffer[1], rxBuffer[2]);
-					rxBufferCount = 0;
-					break;
+					default: break;
 				}
-				default: break;
+			}
+			else if (rxBufferCount == 3){
+				switch (statusByte&0xf0){
+					case 0xb0:{
+						//	HCB Element detection
+						if ( rxBuffer[1] == 0x53 ){
+							rxBuffer[2] = detectElementByMidi( rxBuffer[2] );
+						}
+						setMidiBuffer( statusByte, rxBuffer[1], rxBuffer[2]);
+						rxRunningStatus = statusByte;
+						rxBufferCount = 0;
+						break;
+					}
+					case 0x90:	case 0x80:	case 0xa0:	case 0xe0:{
+						setMidiBuffer( statusByte, rxBuffer[1], rxBuffer[2]);
+						rxRunningStatus = statusByte;
+						rxBufferCount = 0;
+						break;
+					}
+					default: break;
+				}
 			}
 		}
-		if ( rxBufferCount >= 3 ){ rxBufferCount = 0;}
 	}
 }
 
@@ -297,14 +321,14 @@ void checkTouch( void )
 	err = MBR3110_readTouchSw(sw);
 	sw16 = sw[0] | ((uint16_t)sw[1]<<8);
 	if ( err ){
-		setMidiBuffer( 0xb0, 0x11, err & 0x7f );
+		setMidiBuffer( 0xb0, 0x11, (uint8_t)err & 0x7f );
 	}
 	else {
-		for ( int i=0; i<HONEYCOMB_CELL_MAX; i++ ){
+		for ( int i=0; i<cellMax; i++ ){
 			uint16_t	bitPtn;
 			int 		shiftBit = i;
-			if ( i >= 4 ){ shiftBit++;}
-			bitPtn = 0x01 << shiftBit;
+			if ( i >= CELL_MAX_PER_BLOCK ){ shiftBit++;}
+			bitPtn = 0x0001 << shiftBit;
 
 			if ( (swState&bitPtn)^(sw16&bitPtn) ){
 				uint8_t note = tNote[i] +2 -elementNum;
@@ -329,9 +353,9 @@ void checkTouch( void )
 //      Check Volume & Set colorArray[]
 //
 /*----------------------------------------------------------------------------*/
+#if USE_I2C_ADS1015
 void checkVolume( void )
 {
-#if USE_I2C_ADS1015
 	signed short volume=0;
 
 	int err = ADS1015_getVolume(&volume);
@@ -358,42 +382,42 @@ void checkVolume( void )
 	if ( adCnt >= VOLUME_ARRAY_MAX-1 ){ adCnt = 0;}
 
 	ADS1015_setNext(adCnt);
-#endif
 }
-
+#endif
 /*----------------------------------------------------------------------------*/
 //
 //      Automatic Lighting
 //
 /*----------------------------------------------------------------------------*/
-#define		INTERVAL			100		//	*10msec
-#define		INTERVAL_FOR_CELL	(INTERVAL/HONEYCOMB_CELL_MAX)
-#define		BEAT_BLINK_TIME		10
+#define		INTERVAL_PER_BEAT		25		//	*10msec
+#define		BEAT_BLINK_TIME			10		//	*10msec
 /*----------------------------------------------------------------------------*/
 void periodicJobs( void )
 {
 	if ( event10msec ){
+		//	In the first 500msec, Beat doesn't work
+		if ( counter10msec < 50 ){ return; }
+
 		//	Beat Master
 		if ( elementNum == 0 ){
-			int cnt = autoCountPerMeasure%INTERVAL_FOR_CELL;
-			beatCell = autoCountPerMeasure/INTERVAL_FOR_CELL;
-			uint8_t midi3rdData = beatCell;
+			int cnt = autoCountPerMeasure%INTERVAL_PER_BEAT;
+			beatCell = (uint8_t)(autoCountPerMeasure/INTERVAL_PER_BEAT);
 			if ( cnt == 0 ){
 				beatOn = true;
-				midi3rdData |= 0x40;
+				setMidiBuffer( 0xb0, 0x53, beatCell | 0x40 );
 			}
 			else if ( cnt == BEAT_BLINK_TIME ){
 				beatOff = true;
+				setMidiBuffer( 0xb0, 0x53, beatCell );
 			}
 
 			autoCountPerMeasure++;
 			if ( autoCountPerMeasure < 0 ){ autoCountPerMeasure = 0;}
-			else if ( autoCountPerMeasure >= INTERVAL ){ autoCountPerMeasure = 0;}
-			setMidiBuffer( 0xb0, 0x53, midi3rdData);
+			else if ( autoCountPerMeasure >= (INTERVAL_PER_BEAT*cellMax) ){ autoCountPerMeasure = 0;}
 		}
 
 		//	Light Decay
-		for ( int i=0; i<HONEYCOMB_CELL_MAX; i++ ){
+		for ( int i=0; i<cellMax; i++ ){
 			if ( DLE_count( &dle[i] ) == true ){
 				colorArrayEvent[i] = true;
 			}
@@ -453,9 +477,9 @@ void Honeycomb_appli(void)
 	beatLighting();
 
 #if USE_I2C_PCA9685
-	for (int i=0; i<HONEYCOMB_CELL_MAX; i++){
+	for (int i=0; i<cellMax; i++){
 		if ( colorArrayEvent[i] == true ){
-			err = PCA9685_setFullColorLED( i, (unsigned short*)colorArray[i] );
+			err = PCA9685_setFullColorLED( i/CELL_MAX_PER_BLOCK, i%CELL_MAX_PER_BLOCK, (unsigned short*)colorArray[i] );
 			colorArrayEvent[i] = false;
 		}
 	}

@@ -39,8 +39,8 @@ int MBR3110_readTouchSw( unsigned char* touchSw );
 int MBR3110_checkWriteConfig( unsigned char checksum1, unsigned char checksum2 );
 int MBR3110_checkDevice( void );
 
-void PCA9685_init( void );
-int PCA9685_setFullColorLED( int ledNum, unsigned short* color  );
+void PCA9685_init( int chipNumber );
+int PCA9685_setFullColorLED( int chipNumber, int ledNum, unsigned short* color  );
 
 void ACM1602N1_init( void );
 int ACM1602N1_setString( int locate, unsigned char* str, int strNum  );
