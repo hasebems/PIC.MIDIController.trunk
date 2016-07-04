@@ -53,9 +53,9 @@ const unsigned short tLEDPattern[DOREMI_MAX][VOLUME_ARRAY_MAX] =
 {
 	//	R		B		G
 		{2000,	0,		0,		2000},		//	C
-		{1900,	0,		300,	2000},
-		{1800,	0,		600,	2000},		//	D
-		{1500,	0,		800,	2000},
+		{1850,	0,		250,	2000},
+		{1700,	0,		500,	2000},		//	D
+		{1300,	0,		750,	2000},
 		{1000,	0,		1000,	2000},		//	E
 		{0,		0,		2000,	2000},		//	F
 		{0,		1500,	1500,	2000},
@@ -98,7 +98,7 @@ void DLE_on( DLE* this, uint16_t* ptr, uint8_t doremi )
 	this->_count = SEG_IN_TOUCH;
 	this->_colorArrayPtr = ptr;
 	this->_doremi = doremi;
-	while ( doremi >= DOREMI_MAX ){ doremi -= DOREMI_MAX; } 
+	while ( doremi >= DOREMI_MAX ){ doremi -= DOREMI_MAX; }
 	for ( int i=0; i<VOLUME_ARRAY_MAX; i++ ){
 		*(this->_colorArrayPtr+i) = this->_orgColor[i] = tLEDPattern[doremi][i];
 	}
@@ -390,7 +390,7 @@ void checkVolume( void )
 //
 /*----------------------------------------------------------------------------*/
 #define		INTERVAL_PER_BEAT		25		//	*10msec
-#define		BEAT_BLINK_TIME			10		//	*10msec
+#define		BEAT_BLINK_TIME			15		//	*10msec
 /*----------------------------------------------------------------------------*/
 void periodicJobs( void )
 {
