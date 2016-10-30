@@ -407,7 +407,7 @@ void generateCounter( void )
 //      Set MIDI Buffer
 //
 /*----------------------------------------------------------------------------*/
-void setMidiBuffer( uint8_t status, uint8_t dt1, uint8_t dt2 )
+void setUsbMidiBuffer( uint8_t status, uint8_t dt1, uint8_t dt2 )
 {
     //  for USB MIDI
     if ( usbEnable == true ){
@@ -417,7 +417,10 @@ void setMidiBuffer( uint8_t status, uint8_t dt1, uint8_t dt2 )
         midiEventWritePointer++;
         midiEventWritePointer &= MIDI_BUF_MAX_MASK;
     }
-
+}
+/*----------------------------------------------------------------------------*/
+void setSerialMidiBuffer( uint8_t status, uint8_t dt1, uint8_t dt2 )
+{
     //  for Serial MIDI
     if ( status != runningStatus ){
         runningStatus = status;
@@ -428,6 +431,12 @@ void setMidiBuffer( uint8_t status, uint8_t dt1, uint8_t dt2 )
     if ( smbWritePtr >= SERIAL_MIDI_BUFF ){ smbWritePtr -= SERIAL_MIDI_BUFF;}
     serialMidiBuffer[smbWritePtr++] = dt2;
     if ( smbWritePtr >= SERIAL_MIDI_BUFF ){ smbWritePtr -= SERIAL_MIDI_BUFF;}
+}
+/*----------------------------------------------------------------------------*/
+void setMidiBuffer( uint8_t status, uint8_t dt1, uint8_t dt2 )
+{
+	setUsbMidiBuffer(status,dt1,dt2);
+	setSerialMidiBuffer(status,dt1,dt2);
 }
 
 /*----------------------------------------------------------------------------*/

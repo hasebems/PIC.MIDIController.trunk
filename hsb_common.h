@@ -21,6 +21,8 @@ const AppliFunc appFunc[];
 const InterruptFunc intFunc[];
 
 //  Send MIDI
+extern void setUsbMidiBuffer( uint8_t status, uint8_t dt1, uint8_t dt2 );
+extern void setSerialMidiBuffer( uint8_t status, uint8_t dt1, uint8_t dt2 );
 extern void setMidiBuffer( uint8_t status, uint8_t dt1, uint8_t dt2 );
 //	Rcv MIDI by USART
 extern uint8_t getRecievedMIDI( void );
