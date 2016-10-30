@@ -7,6 +7,8 @@
 
 #ifndef I2CDEVICE_H
 #define	I2CDEVICE_H
+#include <stdbool.h>
+#include <stdint.h>
 
 #ifdef	__cplusplus
 extern "C" {
@@ -44,6 +46,9 @@ int PCA9685_setFullColorLED( int chipNumber, int ledNum, unsigned short* color  
 
 void ACM1602N1_init( void );
 int ACM1602N1_setString( int locate, unsigned char* str, int strNum  );
+
+void AQM0802A_init( void );
+int AQM0802A_setStringUpper( int locate, unsigned char* str, int strNum  );
 
 #ifdef	__cplusplus
 }

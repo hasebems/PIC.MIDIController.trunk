@@ -28,6 +28,7 @@ static const unsigned char ADXL345_ADDRESS2 = 0x53;
 static const unsigned char CAP_SENSE_ADDRESS = 0x37;
 static const unsigned char PCA9685_ADDRESS = 0x40;
 static const unsigned char ACM1602N1_ADDRESS = 0x50;
+static const unsigned char AQM0802A_ADDRESS = 0x3e;
 
 // I2C Bus Control Definition
 #define I2C_WRITE_CMD 0
@@ -38,7 +39,8 @@ bool i2cErr;
 //-------------------------------------------------------------------------
 //			I2C Basic Functions
 //-------------------------------------------------------------------------
-void initI2c( void )
+#if ( _XTAL_FREQ == 48000000 )
+void initI2c( void )	//	48MHz
 {
     SSPSTAT = 0b00000000;      // I2C 400kHz
     SSPADD = 0x1d;             // I2Cbus Baud rate,  48MHz/((SSP1ADD + 1)*4) = 400kHz -> 0x1d, 100kHz -> 0x77
@@ -47,6 +49,19 @@ void initI2c( void )
 	i2cErr = false;
 	SSPCON1bits.SSPEN = 1;		//	I2C enable
 }
+#endif
+//-------------------------------------------------------------------------
+# if ( _XTAL_FREQ == 16000000 )
+void initI2c( void )	//	16MHz
+{
+    SSPSTAT = 0b00000000;      // I2C 400kHz
+    SSPADD = 0x09;             // I2Cbus Baud rate,  16MHz/((SSP1ADD + 1)*4) = 400kHz -> 0x09
+    SSPCON1 = 0b00001000;      // I2C enable, Master Mode
+	SSPCON2 = 0x00;
+	i2cErr = false;
+	SSPCON1bits.SSPEN = 1;		//	I2C enable
+}
+#endif
 //-------------------------------------------------------------------------
 void quitI2c( void )
 {
@@ -809,6 +824,56 @@ int ACM1602N1_setString( int locate, unsigned char* str, int strNum  )
         err = writeI2cWithCmd( ACM1602N1_ADDRESS, 0x80, *(str+i) );
         if ( err != 0 ){ return err; }
     }
+    return err;
+}
+#endif
+
+//-------------------------------------------------------------------------
+//			AQM0802A (LCD Module : I2c Device)
+//				Caution!! 3.3 v only
+//-------------------------------------------------------------------------
+#if USE_I2C_AQM0802A    //	for LCD Module
+//-------------------------------------------------------------------------
+void AQM0802A_init( void )
+{	//	Init Parameter
+    __delay_ms(5);
+	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x38 );
+    __delay_us(15);
+	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x39 );
+    __delay_us(15);
+    writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x14 );
+    __delay_us(15);
+	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x70 );
+    __delay_us(15);
+	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x56 );
+    __delay_us(15);
+	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x6c );
+    __delay_us(15);
+	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x38 );
+    __delay_us(15);
+	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x0c );
+    __delay_us(15);
+	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x01 );
+    __delay_ms(5);
+}
+//-------------------------------------------------------------------------
+//				write to LCD
+//-------------------------------------------------------------------------
+int AQM0802A_setStringUpper( int locate, unsigned char* str, int strNum  )
+{
+    int err = 0;
+
+    if ( locate >= 8 ) return;
+	if ( locate + strNum > 8 ){ strNum = 8 - locate; }
+
+	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, (char)locate | 0x80 );
+    __delay_us(15);
+
+	for ( int i=0; i<strNum; i++ ){
+		err = writeI2cWithCmd( AQM0802A_ADDRESS, 0xc0, str[i] );
+        if ( err != 0 ){ return err; }
+	}
+
     return err;
 }
 #endif
