@@ -194,6 +194,7 @@ void initAllI2cHw( void )
 	for ( int i=0; i<90; i++ ) { __delay_ms(10);}	//	Touch Sense enable time for CY8CMBR3110(900msec)
 													//	System Test Enable, EMC Disable
 #endif
+
 #if USE_I2C_LPS25H
 	LPS25H_init();
 #endif
