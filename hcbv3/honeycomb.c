@@ -24,7 +24,7 @@
 #define		HONEYCOMB_CELL_TOUCH_MAX	10
 
 #define		CELL_MAX_PER_BLOCK	4
-#define		VOLUME_ARRAY_MAX	4	//	number of Max Color
+#define		VOLUME_ARRAY_MAX	3	//	number of Max Color
 #define		DOREMI_MAX			12
 #define		MAX_BEATS			8
 
@@ -65,6 +65,20 @@ static int 			rxBufferCount;
 const unsigned short tLEDPattern[DOREMI_MAX][VOLUME_ARRAY_MAX] =
 {
 	//	R		B		G
+		{2000,	0,		0		},		//	C
+		{1850,	0,		250		},
+		{1700,	0,		500		},		//	D
+		{1300,	0,		750		},
+		{1000,	0,		1000	},		//	E
+		{0,		0,		2000	},		//	F
+		{0,		1500,	1500	},
+		{0,		2000,	0		},		//	G
+		{200,	1800,	0		},
+		{500,	1500,	0		},		//	A
+		{800,	1000,	0		},
+		{1200,	300,	0		}		//	B
+#if 0
+	//	R		B		G
 		{2000,	0,		0,		2000},		//	C
 		{1850,	0,		250,	2000},
 		{1700,	0,		500,	2000},		//	D
@@ -77,6 +91,7 @@ const unsigned short tLEDPattern[DOREMI_MAX][VOLUME_ARRAY_MAX] =
 		{500,	1500,	0,		2000},		//	A
 		{800,	1000,	0,		2000},
 		{1200,	300,	0,		2000}		//	B
+#endif
 };
 /*----------------------------------------------------------------------------*/
 #define		DECAY_COUNT_MAX			50		//	* 10msec
@@ -91,7 +106,6 @@ typedef struct {
 	int8_t		_count;							//	decay count
 	uint8_t		_doremi;						//
 	uint16_t	_orgColor[VOLUME_ARRAY_MAX];
-	uint16_t*	_colorArrayPtr;					//	Pointer to colorArray[]
 } DLE;
 /*----------------------------------------------------------------------------*/
 int DLE_getSegment( DLE* this ){ return this->_count; }
@@ -99,21 +113,20 @@ int DLE_getSegment( DLE* this ){ return this->_count; }
 void DLE_init( DLE* this )
 {
 	this->_count = SEG_NOT_USE;		//	decay count
-	this->_colorArrayPtr = 0;		//	Pointer to colorArray[]
 	this->_doremi = 0;
 	for ( int i=0; i<VOLUME_ARRAY_MAX; i++ ){
 		this->_orgColor[i] = 0;
 	}
 }
 /*----------------------------------------------------------------------------*/
-void DLE_on( DLE* this, uint16_t* ptr, uint8_t doremi )
+void DLE_on( DLE* this, uint8_t doremi, uint16_t* colorArrayPtr )
 {
 	this->_count = SEG_IN_TOUCH;
-	this->_colorArrayPtr = ptr;
 	this->_doremi = doremi;
 	while ( doremi >= DOREMI_MAX ){ doremi -= DOREMI_MAX; }
 	for ( int i=0; i<VOLUME_ARRAY_MAX; i++ ){
-		*(this->_colorArrayPtr+i) = this->_orgColor[i] = tLEDPattern[doremi][i];
+		this->_orgColor[i] = tLEDPattern[doremi][i];
+		*(colorArrayPtr+i) = this->_orgColor[i];
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -122,7 +135,7 @@ void DLE_off( DLE* this )
 	this->_count = SEG_DECAY;
 }
 /*----------------------------------------------------------------------------*/
-bool DLE_count( DLE* this )
+bool DLE_count( DLE* this, uint16_t* colorArrayPtr )
 {
 	if ( this->_count >= SEG_DECAY ){
 		this->_count++;
@@ -130,14 +143,14 @@ bool DLE_count( DLE* this )
 			int dcy = this->_count - START_DECAY_COUNT;
 			for ( int i=0; i<VOLUME_ARRAY_MAX; i++ ){
 				this->_orgColor[i] = (this->_orgColor[i]*(DECAY_COEF-1))/DECAY_COEF;
-				*(this->_colorArrayPtr+i) = this->_orgColor[i];
+				*(colorArrayPtr+i) = this->_orgColor[i];
 			}
 			return true;
 		}
 		else if ( this->_count >= DECAY_COUNT_MAX ){
 			//	End of Decay
 			for ( int i=0; i<VOLUME_ARRAY_MAX; i++ ){
-				*(this->_colorArrayPtr+i) = 0;
+				*(colorArrayPtr+i) = 0;
 			}
 			this->_count = SEG_NOT_USE;
 			return true;
@@ -146,7 +159,7 @@ bool DLE_count( DLE* this )
 	return false;
 }
 /*----------------------------------------------------------------------------*/
-static DLE dle[HONEYCOMB_CELL_LED_MAX] @ 0x240;
+static DLE dle[HONEYCOMB_CELL_LED_MAX];
 
 
 /*----------------------------------------------------------------------------*/
@@ -249,7 +262,7 @@ void Honeycomb_init(void)
 void generateLedEvent( int ledIndex, int doremi, bool onoff )
 {
 	if ( onoff == true ){
-		DLE_on( &dle[ledIndex], &colorArray[ledIndex][0], doremi%12 );
+		DLE_on( &dle[ledIndex], doremi%12, &colorArray[ledIndex][0] );
 		colorArrayEvent[ledIndex] = true;
 	}
 	else {
@@ -331,15 +344,15 @@ void analyzeRecievedMIDI( void )
 					case 0x90:{
 						uint8_t note = rxBuffer[1];
 						uint8_t vel = rxBuffer[2];
-						if ((( boardID == 2 ) && ( note == 0x4e )) ||
-							(( boardID == 0 ) && ( note == 0x42 ))){
-							if (vel){ generateLedEvent(10,6,true); }
-							else 	{ generateLedEvent(10,6,false); }
-						}
 						if ((( boardID == 2 ) && ( note == 0x51 )) ||
 							(( boardID == 0 ) && ( note == 0x45 ))){
-							if (vel){ generateLedEvent(11,9,true); }
-							else 	{ generateLedEvent(11,9,false); }
+							if (vel){ generateLedEvent(11,note,true); }
+							else 	{ generateLedEvent(11,note,false); }
+						}
+						if ((( boardID == 2 ) && ( note == 0x4e )) ||
+							(( boardID == 0 ) && ( note == 0x42 ))){
+							if (vel){ generateLedEvent(10,note,true); }
+							else 	{ generateLedEvent(10,note,false); }
 						}
 						//	fall through
 					}
@@ -387,7 +400,7 @@ void generateNoteMessage( bool onoff, int tchCount )
 	if ( onoff == true ){
 		setMidiBuffer(0x90, note, 0x7f);
 		if ( avoidNote == false ){
-			DLE_on( &dle[ledIndex], &colorArray[ledIndex][0], note%12 );
+			DLE_on( &dle[ledIndex], note%12, &colorArray[ledIndex][0] );
 			colorArrayEvent[ledIndex] = true;
 		}
 	}
@@ -495,7 +508,7 @@ void periodicJobs( void )
 
 		//	Light Decay
 		for ( int i=0; i<HONEYCOMB_CELL_LED_MAX; i++ ){
-			if ( DLE_count( &dle[i] ) == true ){
+			if ( DLE_count( &dle[i], &colorArray[i][0] ) == true ){
 				colorArrayEvent[i] = true;
 			}
 		}
