@@ -836,37 +836,41 @@ int ACM1602N1_setString( int locate, unsigned char* str, int strNum  )
 //-------------------------------------------------------------------------
 void AQM0802A_init( void )
 {	//	Init Parameter
-    __delay_ms(5);
+    for ( int i=0; i<4; i++ ){ __delay_ms(10);}
 	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x38 );
-    __delay_us(15);
+    __delay_us(30);
 	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x39 );
-    __delay_us(15);
+    __delay_us(30);
     writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x14 );
-    __delay_us(15);
+    __delay_us(30);
 	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x70 );
-    __delay_us(15);
+    __delay_us(30);
 	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x56 );
-    __delay_us(15);
+    __delay_us(30);
 	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x6c );
-    __delay_us(15);
+    __delay_us(30);
 	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x38 );
-    __delay_us(15);
+    __delay_us(30);
 	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x0c );
-    __delay_us(15);
+	for ( int i=0; i<20; i++ ){ __delay_ms(10);}
 	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, 0x01 );
-    __delay_ms(5);
+	__delay_us(30);
 }
 //-------------------------------------------------------------------------
 //				write to LCD
 //-------------------------------------------------------------------------
-int AQM0802A_setStringUpper( int locate, unsigned char* str, int strNum  )
+int AQM0802A_setString( int locate, unsigned char* str, int strNum, bool upper  )
 {
     int err = 0;
+	char startPoint;
 
     if ( locate >= 8 ) return;
 	if ( locate + strNum > 8 ){ strNum = 8 - locate; }
 
-	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, (char)locate | 0x80 );
+	if ( upper == true ){ startPoint = (char)locate | 0x80; }
+	else { startPoint = (char)locate | 0xc0; }
+
+	writeI2cWithCmd( AQM0802A_ADDRESS, 0x80, startPoint );
     __delay_us(15);
 
 	for ( int i=0; i<strNum; i++ ){
@@ -875,5 +879,15 @@ int AQM0802A_setStringUpper( int locate, unsigned char* str, int strNum  )
 	}
 
     return err;
+}
+//-------------------------------------------------------------------------
+int AQM0802A_setStringUpper( int locate, unsigned char* str, int strNum  )
+{
+    return AQM0802A_setString(locate,str,strNum,true);
+}
+//-------------------------------------------------------------------------
+int AQM0802A_setStringLower( int locate, unsigned char* str, int strNum  )
+{
+	return AQM0802A_setString(locate,str,strNum,false);
 }
 #endif
